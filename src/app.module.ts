@@ -24,7 +24,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
     RedisModule.forRoot({
       config: {
         host: 'redis://red-cpcshun79t8c73ecqhcg:6379',
-        // port: 6379,
+        port: 6379,
         // password: 'authpassword',
       },
     }),

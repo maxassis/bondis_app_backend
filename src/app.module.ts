@@ -27,8 +27,9 @@ import { TasksModule } from './modules/Tasks/tasks.module';
     }),
     RedisModule.forRoot({
       config: {
-        host: 'localhost',
-        port: 6379,
+        url: 'redis://red-cpcshun79t8c73ecqhcg:6379',
+        // host: 'localhost',
+        // port: 6379,
         // password: 'authpassword',
       },
     }),

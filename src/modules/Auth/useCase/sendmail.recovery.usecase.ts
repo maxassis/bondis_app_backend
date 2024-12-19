@@ -2,11 +2,12 @@ import {
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
+  Inject,
 } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import { MailerService } from '@nestjs-modules/mailer';
-import Redis from 'ioredis';
-import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { AccountRecoveryCodeTemplate } from 'src/templates-email/account.recovery.code.template';
 
@@ -14,7 +15,8 @@ import { AccountRecoveryCodeTemplate } from 'src/templates-email/account.recover
 export class SendMailRecoveryUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    @InjectRedis() private readonly redis: Redis,
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
     private readonly mailerService: MailerService,
   ) {}
 
@@ -33,14 +35,16 @@ export class SendMailRecoveryUseCase {
     const code = nanoid();
 
     try {
-      await this.redis.set(`code-${email}`, code, 'EX', 300);
+      await this.cacheManager.set(`code-${email}`, code, 300000);
+
       await this.mailerService.sendMail({
         to: email,
         from: 'bondis@meudesafio.com',
         subject: 'Confirme seu email',
         html: AccountRecoveryCodeTemplate(user.name, code),
       });
-    } catch {
+    } catch (error) {
+      console.error('Erro ao enviar email de recuperação:', error);
       throw new InternalServerErrorException();
     }
 

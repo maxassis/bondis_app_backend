@@ -1,14 +1,19 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Inject,
+} from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import { MailerService } from '@nestjs-modules/mailer';
-import Redis from 'ioredis';
-import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { CreateUserTemplate } from 'src/templates-email/create.user.code.template';
 
 @Injectable()
 export class SendMailUseCase {
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
     private readonly mailerService: MailerService,
   ) {}
 
@@ -17,14 +22,16 @@ export class SendMailUseCase {
     const code = nanoid();
 
     try {
-      await this.redis.set(`code-${email}`, code, 'EX', 300);
+      await this.cacheManager.set(`code-${email}`, code, 300000);
+
       await this.mailerService.sendMail({
         to: email,
         from: 'bondis@meudesafio.com',
         subject: 'Confirme seu email',
         html: CreateUserTemplate(name, code),
       });
-    } catch {
+    } catch (error) {
+      console.error('Erro ao enviar email:', error);
       throw new InternalServerErrorException();
     }
 
